@@ -1,0 +1,12 @@
+{
+  "count": 223,
+  "dev": 33,
+  "families": {
+    "incident": 48,
+    "workflow": 175
+  },
+  "protocol": "success-first; completion time is defined only for successful runs",
+  "split_policy": "stratified 60/15/25 by family and seed",
+  "test": 57,
+  "train": 133
+}

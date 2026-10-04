@@ -1,0 +1,11 @@
+const mineflayer = require(process.env.MINEFLAYER_MODULE || 'mineflayer');
+const host = process.env.MC_HOST || '127.0.0.1';
+const port = Number(process.env.MC_PORT || 25565);
+const username = process.env.MC_USERNAME || 'masbench_smoke';
+const timeoutMs = Number(process.env.MC_TIMEOUT_MS || 5000);
+const bot = mineflayer.createBot({host, port, username, version: process.env.MC_VERSION || '1.19.2'});
+let finished = false;
+function finish(payload) { if (!finished) { finished = true; console.log(JSON.stringify(payload)); process.exit(0); } }
+bot.once('spawn', () => finish({status: 'connected', host, port, username}));
+bot.once('error', (error) => finish({status: 'connect_error', host, port, code: error.code || null, message: error.message}));
+setTimeout(() => finish({status: 'timeout', host, port}), timeoutMs);

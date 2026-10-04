@@ -1,0 +1,6 @@
+{
+  "openai": {"model": "gpt-5.6-sol", "api_key_env": "OPENAI_API_KEY", "adapter": "responses"},
+  "anthropic": {"model": "claude-opus-5", "api_key_env": "ANTHROPIC_API_KEY", "adapter": "messages"},
+  "google": {"model": "gemini-3.1-pro", "api_key_env": "GEMINI_API_KEY", "adapter": "generate_content"},
+  "open_model": {"model": "Qwen2.5-7B-Instruct", "checkpoint_env": "MASBENCH_QWEN_CHECKPOINT", "adapter": "transformers"}
+}

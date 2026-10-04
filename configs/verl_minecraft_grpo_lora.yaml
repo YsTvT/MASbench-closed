@@ -1,0 +1,103 @@
+# veRL/verl-agent configuration for the first real Minecraft pilot.
+# This config is intended for the dedicated ${MASBENCH_VERL_ENV}
+# environment and the source checkout at ${MASBENCH_VERL_AGENT_ROOT}.
+algorithm:
+  adv_estimator: grpo
+  use_kl_in_reward: false
+ray_init:
+  num_cpus: null
+critic:
+  strategy: fsdp
+reward_model:
+  enable: false
+  strategy: fsdp
+  reward_manager: episode
+data:
+  train_files: ${MASBENCH_ROOT}/data/minecraft_real_pilot/train.parquet
+  val_files: ${MASBENCH_ROOT}/data/minecraft_real_pilot/val.parquet
+  train_batch_size: 1
+  val_batch_size: 1
+  max_prompt_length: 1536
+  max_response_length: 128
+  return_raw_chat: true
+  truncation: error
+  shuffle: true
+  seed: 42
+  train_dataset:
+    device: cuda
+  val_dataset:
+    device: cuda
+actor_rollout_ref:
+  hybrid_engine: true
+  model:
+    path: ${MASBENCH_MODEL_ROOT}/Qwen2.5-7B-Instruct
+    lora_rank: 32
+    lora_alpha: 32
+    target_modules: all-linear
+    enable_gradient_checkpointing: true
+  actor:
+    # GRPO has no value model, but this field is read by shared veRL config
+    # normalization before the algorithm branch is selected.
+    critic: null
+    strategy: fsdp
+    use_dynamic_bsz: false
+    use_adaptive_ppo_mini_batch_size: false
+    ppo_mini_update_num: 1
+    optim:
+      lr: 2.0e-5
+    ppo_mini_batch_size: 4
+    ppo_micro_batch_size_per_gpu: 1
+    ppo_epochs: 1
+    use_kl_loss: true
+    kl_loss_coef: 0.001
+    clip_ratio: 0.2
+    use_invalid_action_penalty: true
+    invalid_action_penalty_coef: 0.05
+  rollout:
+    name: vllm
+    mode: sync
+    # main_ppo reserves actor_rollout_ref.rollout.n for vanilla vLLM and
+    # asserts it is one; the real Minecraft group is controlled by env.rollout.n.
+    n: 1
+    tensor_model_parallel_size: 1
+    temperature: 0.8
+    top_p: 0.95
+    max_model_len: 2048
+    gpu_memory_utilization: 0.50
+    log_prob_micro_batch_size_per_gpu: 1
+  ref:
+    log_prob_micro_batch_size_per_gpu: 1
+    fsdp_config:
+      param_offload: true
+trainer:
+  n_gpus_per_node: 1
+  nnodes: 1
+  val_before_train: false
+  resume_mode: disable
+  total_training_steps: 1
+  save_freq: 1
+  test_freq: -1
+  default_local_dir: ${MASBENCH_ROOT}/results/verl_minecraft_grpo_lora_pilot
+  project_name: masbench
+  experiment_name: minecraft_grpo_lora_real_pilot
+  logger: [console]
+  device: cuda
+env:
+  env_name: minecraft
+  seed: 42
+  resources_per_worker:
+    num_cpus: 1
+    num_gpus: 0
+  rollout:
+    n: 4
+    max_turns: 100
+    require_real: true
+    require_evaluated_checker: true
+    task_file: ${MASBENCH_ROOT}/data/minecraft_real_pilot/train.jsonl
+    task_idx: 34
+    server_root: ${MASBENCH_SERVER_ROOT}
+    world_snapshot: ${MASBENCH_ROOT}/world_snapshots/task_34
+    villageragent_root: ${MASBENCH_ROOT}/vendor/VillagerAgent
+    server_port_base: 25600
+    agent_port_base: 6000
+  max_steps: 100

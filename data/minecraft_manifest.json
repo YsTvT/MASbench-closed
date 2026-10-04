@@ -1,0 +1,33 @@
+{
+  "baseline": "villageragent_serial",
+  "count": 300,
+  "families": {
+    "construction": 100,
+    "cooking": 100,
+    "escape": 25,
+    "mas_hard": 75
+  },
+  "protocol": "task graph first; success before time",
+  "reference_plan_controllers": [
+    "serial",
+    "parallel",
+    "handoff"
+  ],
+  "reference_plans": 900,
+  "source_alignment": {
+    "masbench_extension": 75,
+    "villagerbench_construction": 100,
+    "villagerbench_cooking": 100,
+    "villagerbench_escape": 25
+  },
+  "splits": {
+    "dev": 50,
+    "test": 70,
+    "train": 180
+  },
+  "synthetic_replay_variants": [
+    "oracle",
+    "stale_handoff"
+  ],
+  "synthetic_replays": 1800
+}

@@ -1,0 +1,178 @@
+# veRL/verl-agent configuration for the first real Minecraft pilot.
+# This config is intended for the dedicated ${MASBENCH_VERL_ENV}
+# environment and the source checkout at ${MASBENCH_VERL_AGENT_ROOT}.
+algorithm:
+  adv_estimator: grpo
+  gamma: 1.0
+  lam: 1.0
+  norm_adv_by_std_in_grpo: true
+  use_kl_in_reward: false
+  kl_ctrl:
+    type: fixed
+    kl_coef: 0.001
+    horizon: 10000
+    target_kl: 0.1
+ray_init:
+  num_cpus: null
+critic:
+  strategy: fsdp
+  model:
+    # GRPO has no value model; keep the schema object but do not load a
+    # second 7B copy on the single-GPU actor/rollout worker.
+    path: null
+    tokenizer_path: null
+    trust_remote_code: true
+    use_shm: false
+    fsdp_config:
+      param_offload: false
+      optimizer_offload: false
+      fsdp_size: -1
+  optim:
+    lr: 2.0e-5
+    betas: [0.9, 0.999]
+    weight_decay: 0.01
+  ppo_micro_batch_size_per_gpu: 1
+reward_model:
+  enable: false
+  strategy: fsdp
+  reward_manager: episode
+  model:
+    path: null
+    trust_remote_code: true
+    fsdp_config:
+      param_offload: true
+      optimizer_offload: false
+data:
+  train_files: ${MASBENCH_ROOT}/data/minecraft_real/train.parquet
+  val_files: ${MASBENCH_ROOT}/data/minecraft_real/val.parquet
+  train_batch_size: 1
+  val_batch_size: 1
+  max_prompt_length: 1536
+  max_response_length: 128
+  return_raw_chat: true
+  prompt_key: prompt
+  reward_fn_key: reward_model
+  tokenizer: null
+  trust_remote_code: true
+  filter_overlong_prompts: false
+  truncation: error
+  shuffle: true
+  seed: 42
+  train_dataset:
+    device: cuda
+  val_dataset:
+    device: cuda
+actor_rollout_ref:
+  hybrid_engine: true
+  model:
+    path: ${MASBENCH_MODEL_ROOT}/Qwen2.5-7B-Instruct
+    trust_remote_code: true
+    use_shm: false
+    lora_rank: 32
+    lora_alpha: 32
+    target_modules: all-linear
+    enable_gradient_checkpointing: true
+  actor:
+    # GRPO has no value model, but this field is read by shared veRL config
+    # normalization before the algorithm branch is selected.
+    critic: null
+    strategy: fsdp
+    use_dynamic_bsz: false
+    use_adaptive_ppo_mini_batch_size: false
+    ulysses_sequence_parallel_size: 1
+    ppo_mini_update_num: 1
+    optim:
+      lr: 2.0e-5
+    ppo_mini_batch_size: 4
+    ppo_micro_batch_size: null
+    ppo_micro_batch_size_per_gpu: 1
+    ppo_epochs: 1
+    use_kl_loss: true
+    kl_loss_coef: 0.001
+    entropy_coeff: 0.0
+    clip_ratio: 0.2
+    clip_ratio_low: 0.2
+    clip_ratio_high: 0.2
+    clip_ratio_c: 10.0
+    loss_agg_mode: token-mean
+    fsdp_config:
+      param_offload: false
+      optimizer_offload: false
+      fsdp_size: -1
+    use_invalid_action_penalty: true
+    invalid_action_penalty_coef: 0.05
+  rollout:
+    name: vllm
+    mode: sync
+    # main_ppo reserves actor_rollout_ref.rollout.n for vanilla vLLM and
+    # asserts it is one; the real Minecraft group is controlled by env.rollout.n.
+    n: 1
+    tensor_model_parallel_size: 1
+    temperature: 0.8
+    top_k: -1
+    top_p: 0.95
+    dtype: auto
+    load_format: auto
+    enforce_eager: false
+    free_cache_engine: false
+    disable_log_stats: true
+    enable_chunked_prefill: true
+    max_model_len: 2048
+    prompt_length: 1536
+    response_length: 128
+    gpu_memory_utilization: 0.50
+    log_prob_micro_batch_size: null
+    log_prob_micro_batch_size_per_gpu: 1
+    val_kwargs:
+      do_sample: false
+    multi_turn:
+      enable: false
+  ref:
+    log_prob_micro_batch_size: null
+    log_prob_micro_batch_size_per_gpu: 1
+    fsdp_config:
+      param_offload: true
+      optimizer_offload: false
+trainer:
+  n_gpus_per_node: 1
+  nnodes: 1
+  val_before_train: false
+  resume_mode: disable
+  total_training_steps: 1
+  total_epochs: 1
+  save_freq: 1
+  test_freq: -1
+  default_local_dir: ${MASBENCH_ROOT}/results/verl_minecraft_grpo_lora_real
+  project_name: masbench
+  experiment_name: minecraft_grpo_lora_real
+  logger: [console]
+  device: cuda
+  default_hdfs_dir: null
+  ray_wait_register_center_timeout: 300
+  use_legacy_worker_impl: false
+  critic_warmup: 0
+  val_only: false
+  test_only: false
+  max_actor_ckpt_to_keep: 1
+  max_critic_ckpt_to_keep: 1
+  resume_from_path: null
+  log_val_generations: 0
+env:
+  env_name: minecraft
+  seed: 42
+  resources_per_worker:
+    num_cpus: 1
+    num_gpus: 0
+  rollout:
+    n: 4
+    max_turns: 100
+    require_real: true
+    require_evaluated_checker: true
+    task_file: ${MASBENCH_ROOT}/data/minecraft_real/train.jsonl
+    task_idx: 34
+    server_root: ${MASBENCH_SERVER_ROOT}
+    world_snapshot: ${MASBENCH_ROOT}/world_snapshots/task_34
+    villageragent_root: ${MASBENCH_ROOT}/vendor/VillagerAgent
+    server_port_base: 25600
+    agent_port_base: 6000
+  max_steps: 100
