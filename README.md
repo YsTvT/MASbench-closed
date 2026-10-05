@@ -7,6 +7,17 @@ adapters, runnable scripts, configuration, documentation, and tests remain
 independent so a prompt-only closed model can be evaluated beside a trainable
 veRL policy.
 
+## GiGPO-style repository separation
+
+Following the upstream `verl-agent`/GiGPO layout, MASbench keeps environment
+transitions and scoring independent from the controller or learner. The
+prompt-only closed path lives in `masbench/minecraft/prompting.py` and provider
+factories, while trainable veRL policies remain in the RL adapters. `configs/`
+contains runnable settings, `scripts/` contains entry points, `docs/` records
+the rollout protocols, and `tests/` covers the provider-neutral contracts.
+This lets a frozen API baseline and a trainable policy use the same real-world
+checker without sharing weights, caches, or rollout state.
+
 ## Repository layout
 
 - `masbench/`: task schemas, environments, adapters, metrics, and controllers.

@@ -110,6 +110,8 @@ class OpenAICompatibleAdapter(ModelAdapter):
             return "".join(chunks)
         payload = {"model": self.model, "messages": list(messages),
                    "temperature": self.temperature, "max_tokens": self.max_tokens, "n": 1}
+        if os.environ.get("MASBENCH_DISABLE_THINKING", "").lower() in {"1", "true", "yes"}:
+            payload["thinking"] = {"type": "disabled"}
         if response_schema:
             payload["response_format"] = {"type": "json_object"}
         response = _post_json(self.base_url, headers, payload, self.timeout)

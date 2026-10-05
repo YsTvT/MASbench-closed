@@ -18,7 +18,7 @@ from ..controllers import ModelAdapter
 
 PROMPT_VERSION = "minecraft-villageragent-typed-prompt-v1"
 
-_PROMPT_REDACT_KEYS = frozenset({"task_id", "task_name", "split"})
+_PROMPT_REDACT_KEYS = frozenset({"task_id", "task_name", "task_idx", "world_seed", "split"})
 
 # Keep this schema permissive for tool arguments.  The action ``type`` is
 # constrained, while arguments such as coordinates, item names and targets are

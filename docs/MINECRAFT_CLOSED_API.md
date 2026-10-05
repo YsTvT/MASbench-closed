@@ -112,3 +112,32 @@ action schema. A paper-faithful reproduction of the original natural-language
 ReAct baseline should instead run the upstream `BaseAgent -> env.step ->
 Agent.run` loop with the same Alice/Bob tool set and prompt version, then wrap
 its checker output into this score schema.
+
+## Z.ai GLM Flash
+
+The public `masbench.minecraft.closed_glm_factory` targets the OpenAI-compatible
+Z.ai endpoint and reads the key only from `ZAI_API_KEY`. `glm-4.5-flash` can be
+used for a no-cost prompt-path run when the account's free quota is available.
+GLM Flash enables reasoning by default; set `MASBENCH_DISABLE_THINKING=1` so
+the endpoint returns the JSON action directly for the strict parser.
+
+The canonical held-out real test command is:
+
+```bash
+export ZAI_API_KEY='...'
+export MASBENCH_CLOSED_MODEL=glm-4.5-flash
+export MASBENCH_DISABLE_THINKING=1
+export ZAI_BASE_URL=https://api.z.ai/api/paas/v4/chat/completions
+PYTHONPATH=. python3 scripts/eval_minecraft_prompt.py \
+  --tasks-file data/minecraft_real/test.jsonl \
+  --train-tasks-file data/minecraft_real/train.jsonl \
+  --split test --max-tasks 0 --repeats 1 \
+  --out results/minecraft_closed_prompt/glm_flash_full \
+  --model-label glm-free-flash --model-version glm-4.5-flash \
+  --adapter-factory masbench.minecraft.closed_glm_factory:make_real_adapter \
+  --model-factory masbench.minecraft.closed_glm_factory:make_model
+```
+
+The split audit runs before any API or Minecraft work. Keep real test rows,
+world snapshots, checker labels, API keys and rollout results outside public
+Git history.

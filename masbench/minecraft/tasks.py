@@ -12,6 +12,31 @@ from pathlib import Path
 ACTIONS = ("observe", "move", "gather", "craft", "cook", "place", "attack", "trade", "handoff", "deposit", "submit")
 
 
+def _normalize_real_task(task):
+    """Adapt canonical veRL real-task rows without exposing blueprint data."""
+    if "deadline_ticks" in task:
+        return task
+    task = dict(task)
+    task["deadline_ticks"] = 100
+    task.setdefault("world_seed", task.get("task_idx", 0))
+    task.setdefault("family", "minecraft")
+    task.setdefault("difficulty", 1)
+    task.setdefault("goal", task.get("goal") or task.get("task_name") or task["task_id"])
+    task.setdefault("subtasks", [])
+    task.setdefault("parallel_groups", [])
+    task.setdefault("success_checks", [])
+    task.setdefault("baseline", {})
+    task.setdefault("topology_id", task["task_id"])
+    task.setdefault("world_config", {})
+    task.setdefault("initial_inventory", {})
+    task.setdefault("action_specs", [])
+    task.setdefault("concrete_success_checks", [])
+    task.setdefault("serial_estimated_ticks", task["deadline_ticks"])
+    task.setdefault("critical_path_ticks", task["deadline_ticks"])
+    task.setdefault("environment_events", [])
+    return task
+
+
 def validate_task(task):
     required = ("task_id", "family", "split", "difficulty", "deadline_ticks", "world_seed",
                 "goal", "subtasks", "parallel_groups", "success_checks", "baseline",
@@ -70,8 +95,10 @@ def load_tasks(path, split=None):
     with path.open() as handle:
         for line in handle:
             if line.strip():
-                task = json.loads(line)
-                validate_task(task)
+                raw_task = json.loads(line)
+                task = _normalize_real_task(raw_task)
+                if "deadline_ticks" in raw_task:
+                    validate_task(task)
                 if split is None or task["split"] == split:
                     rows.append(task)
     return rows
